@@ -1,91 +1,220 @@
-import streamlit as st
-import pickle
+import joblib  # Using joblib as it's standard for sklearn models
+import numpy as np
 import pandas as pd
-import numpy as np # Import numpy
+import streamlit as st
 
-# Load the trained model and scaler
-try:
-    with open('ridge_regression_model.pkl', 'rb') as model_file:
-        model = pickle.load(model_file)
-    with open('scaler.pkl', 'rb') as scaler_file:
-        scaler = pickle.load(scaler_file)
-except FileNotFoundError:
-    st.error("Error: Model or scaler file not found. Make sure 'ridge_regression_model.pkl' and 'scaler.pkl' are in the same directory as this app.py file.")
-    st.stop() # Stop the app if files are not found
+# Set page configuration
+st.set_page_config(
+    page_title="House Price Predictor", page_icon="🏡", layout="wide"
+)
 
-st.title('🏡 House Price Prediction App')
-st.write('Enter the property details below to predict the estimated house price.')
+# Load the trained model and scaler with cached resource loading for speed
+@st.cache_resource
+def load_assets():
+  try:
+    model = joblib.load("ridge_regression_model.pkl")
+    scaler = joblib.load("scaler.pkl")
+    return model, scaler
+  except FileNotFoundError:
+    return None, None
 
-# Define the exact 79 feature names your model was trained on, in order
-# This list was derived from x.columns in the notebook before scaling.
+
+model, scaler = load_assets()
+
+if model is None or scaler is None:
+  st.error(
+      "🚨 Error: Model or scaler file not found. Ensure"
+      " 'ridge_regression_model.pkl' and 'scaler.pkl' are in the root directory."
+  )
+  st.stop()
+
+# Define the exact 79 feature names your model was trained on
 model_features = [
-    'MSSubClass', 'MSZoning', 'LotFrontage', 'LotArea', 'Street', 'Alley',
-    'LotShape', 'LandContour', 'Utilities', 'LotConfig', 'LandSlope',
-    'Neighborhood', 'Condition1', 'Condition2', 'BldgType', 'HouseStyle',
-    'OverallQual', 'OverallCond', 'YearBuilt', 'YearRemodAdd', 'RoofStyle',
-    'RoofMatl', 'Exterior1st', 'Exterior2nd', 'MasVnrType', 'MasVnrArea',
-    'ExterQual', 'ExterCond', 'Foundation', 'BsmtQual', 'BsmtCond',
-    'BsmtExposure', 'BsmtFinType1', 'BsmtFinSF1', 'BsmtFinType2',
-    'BsmtFinSF2', 'BsmtUnfSF', 'TotalBsmtSF', 'Heating', 'HeatingQC',
-    'CentralAir', 'Electrical', '1stFlrSF', '2ndFlrSF', 'LowQualFinSF',
-    'GrLivArea', 'BsmtFullBath', 'BsmtHalfBath', 'FullBath', 'HalfBath',
-    'BedroomAbvGr', 'KitchenAbvGr', 'KitchenQual', 'TotRmsAbvGrd',
-    'Functional', 'Fireplaces', 'FireplaceQu', 'GarageType', 'GarageYrBlt',
-    'GarageFinish', 'GarageCars', 'GarageArea', 'GarageQual', 'GarageCond',
-    'PavedDrive', 'WoodDeckSF', 'OpenPorchSF', 'EnclosedPorch', '3SsnPorch',
-    'ScreenPorch', 'PoolArea', 'PoolQC', 'Fence', 'MiscFeature', 'MiscVal',
-    'MoSold', 'YrSold', 'SaleType', 'SaleCondition'
+    "MSSubClass",
+    "MSZoning",
+    "LotFrontage",
+    "LotArea",
+    "Street",
+    "Alley",
+    "LotShape",
+    "LandContour",
+    "Utilities",
+    "LotConfig",
+    "LandSlope",
+    "Neighborhood",
+    "Condition1",
+    "Condition2",
+    "BldgType",
+    "HouseStyle",
+    "OverallQual",
+    "OverallCond",
+    "YearBuilt",
+    "YearRemodAdd",
+    "RoofStyle",
+    "RoofMatl",
+    "Exterior1st",
+    "Exterior2nd",
+    "MasVnrType",
+    "MasVnrArea",
+    "ExterQual",
+    "ExterCond",
+    "Foundation",
+    "BsmtQual",
+    "BsmtCond",
+    "BsmtExposure",
+    "BsmtFinType1",
+    "BsmtFinSF1",
+    "BsmtFinType2",
+    "BsmtFinSF2",
+    "BsmtUnfSF",
+    "TotalBsmtSF",
+    "Heating",
+    "HeatingQC",
+    "CentralAir",
+    "Electrical",
+    "1stFlrSF",
+    "2ndFlrSF",
+    "LowQualFinSF",
+    "GrLivArea",
+    "BsmtFullBath",
+    "BsmtHalfBath",
+    "FullBath",
+    "HalfBath",
+    "BedroomAbvGr",
+    "KitchenAbvGr",
+    "KitchenQual",
+    "TotRmsAbvGrd",
+    "Functional",
+    "Fireplaces",
+    "FireplaceQu",
+    "GarageType",
+    "GarageYrBlt",
+    "GarageFinish",
+    "GarageCars",
+    "GarageArea",
+    "GarageQual",
+    "GarageCond",
+    "PavedDrive",
+    "WoodDeckSF",
+    "OpenPorchSF",
+    "EnclosedPorch",
+    "3SsnPorch",
+    "ScreenPorch",
+    "PoolArea",
+    "PoolQC",
+    "Fence",
+    "MiscFeature",
+    "MiscVal",
+    "MoSold",
+    "YrSold",
+    "SaleType",
+    "SaleCondition",
 ]
 
-st.header("Property Characteristics")
+# --- Sidebar ---
+with st.sidebar:
+  st.image(
+      "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=600&q=80",
+      use_container_width=True,
+  )
+  st.title("About App")
+  st.info(
+      "This application leverages a **Ridge Regression** machine learning"
+      " pipeline trained on housing data to estimate property market values"
+      " based on key structural features."
+  )
+  st.markdown("---")
+  st.markdown("### 🛠️ Tech Stack")
+  st.markdown(
+      "- Python • Streamlit\n- Scikit-Learn • Pandas\n- Ridge Regression Model"
+  )
 
-# User input fields for key features (corresponding to original training features)
-# You can add more input fields here, but for any feature not explicitly asked,
-# a default value will be used.
+# --- Main Page Layout ---
+st.title("🏡 Ames Housing Price Prediction")
+st.markdown(
+    "Provide the core structural attributes of the property below to generate an"
+    " instant valuation estimate."
+)
+st.markdown("---")
 
-# Note: Some features like Alley, PoolQC, Fence, MiscFeature had many NaNs and were dropped by df.dropna()
-# In a real app, you'd handle these gracefully, potentially providing 'None' or the most common value.
-# For now, we'll assign 0 as a placeholder default for all non-user-input features.
+st.subheader("📊 Key Property Characteristics")
 
-# Minimum and maximum values are taken from the original dataset for guidance.
-sqft_grlivarea = st.number_input("Above Grade (Ground) Living Area (sqft)", min_value=334, max_value=5642, value=1500)
-bedrooms_abvgr = st.number_input("Bedrooms Above Grade", min_value=0, max_value=8, value=3)
-full_bath = st.number_input("Full Bathrooms", min_value=0, max_value=3, value=2)
-overall_qual = st.slider("Overall Quality (1-10)", min_value=1, max_value=10, value=7)
-year_built = st.number_input("Year Built", min_value=1872, max_value=2010, value=2000)
+# Creating a clean 2-column layout for inputs
+col1, col2 = st.columns(2)
 
-# Example of how to add a categorical feature, assuming it was label encoded
-# You would need to know the mapping from original categories to their encoded numbers
-# For simplicity, if MSZoning was encoded as {'RL': 3, ...}, you'd map user choice to 3.
-# mszoning_options = {'RL': 3, 'RM': 4, 'FV': 0, 'RH': 2, 'C (all)': 1}
-# selected_mszoning_display = st.selectbox('MS Zoning', options=list(mszoning_options.keys()), index=0)
-# mszoning_encoded = mszoning_options[selected_mszoning_display]
+with col1:
+  sqft_grlivarea = st.number_input(
+      "Above Grade Living Area (sqft)",
+      min_value=334,
+      max_value=5642,
+      value=1500,
+      help="Total square footage of living area above ground.",
+  )
+  bedrooms_abvgr = st.number_input(
+      "Bedrooms Above Grade",
+      min_value=0,
+      max_value=8,
+      value=3,
+      help="Number of bedrooms above basement level.",
+  )
+  full_bath = st.number_input(
+      "Full Bathrooms",
+      min_value=0,
+      max_value=3,
+      value=2,
+      help="Full bathrooms above ground.",
+  )
 
-if st.button('Predict Sale Price'):
-    # Create a dictionary to hold all 79 feature values, initialized to 0
+with col2:
+  overall_qual = st.slider(
+      "Overall Material & Finish Quality",
+      min_value=1,
+      max_value=10,
+      value=7,
+      help="Rate the overall material and finish of the house (1 = Very Poor, 10"
+      " = Very Excellent).",
+  )
+  year_built = st.number_input(
+      "Year Built",
+      min_value=1872,
+      max_value=2010,
+      value=2000,
+      help="Original construction date.",
+  )
+
+st.markdown("---")
+
+# Center alignment for the prediction action button
+col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+
+with col_btn2:
+  predict_button = st.button(
+      "🔮 Predict Sale Price", use_container_width=True, type="primary"
+  )
+
+if predict_button:
+  # Create a spinner while processing prediction
+  with st.spinner("Analyzing property metrics and calculating valuation..."):
+    # Create feature dictionary initialized to 0 defaults
     feature_values = {feature: 0 for feature in model_features}
-    
-    # Populate with user inputs
-    feature_values['GrLivArea'] = sqft_grlivarea
-    feature_values['BedroomAbvGr'] = bedrooms_abvgr
-    feature_values['FullBath'] = full_bath
-    feature_values['OverallQual'] = overall_qual
-    feature_values['YearBuilt'] = year_built
-    
-    # If you had more inputs, you would map them here:
-    # feature_values['MSZoning'] = mszoning_encoded # Example for categorical
-    # feature_values['LotArea'] = st.number_input('Lot Area', ...)
 
-    # Create a DataFrame from the feature values, ensuring correct column order
+    # Map user parameters
+    feature_values["GrLivArea"] = sqft_grlivarea
+    feature_values["BedroomAbvGr"] = bedrooms_abvgr
+    feature_values["FullBath"] = full_bath
+    feature_values["OverallQual"] = overall_qual
+    feature_values["YearBuilt"] = year_built
+
+    # Convert to DataFrame matching exact model columns order
     input_df = pd.DataFrame([feature_values], columns=model_features)
 
-    # Scale the input features
+    # Transform data and predict
     scaled_data = scaler.transform(input_df)
-
-    # Make prediction
     prediction = model.predict(scaled_data)
 
-    # Display result
-    st.success(
-        f'The estimated Sale Price is: ${prediction[0]:,.2f}'
-    )
+  # Results display box
+  st.markdown("### 🏷️ Valuation Results")
+  st.success(
+      f"### Estimated Market Sale Price: **${prediction[0]:,.2f}**", icon="💰"
+  )
+  st.balloons()

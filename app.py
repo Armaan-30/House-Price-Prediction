@@ -8,17 +8,27 @@ st.set_page_config(
     page_title="House Price Predictor", page_icon="🏡", layout="wide"
 )
 
-# --- Custom Dark Minimalist UI & Animations Styling ---
+# --- Custom Dark Minimalist UI & Sidebar Fix ---
 st.markdown(
     """
     <style>
-    /* Global Dark Theme Adjustments */
+    /* Global Dark Theme */
     .stApp {
         background-color: #0b0f19;
         color: #f3f4f6;
     }
     
-    /* Sleek Card Containers with Smooth Fade-in Animation */
+    /* Force Sidebar to Match Dark Theme */
+    [data-testid="stSidebar"] {
+        background-color: #111827;
+        border-right: 1px solid #1f2937;
+    }
+    
+    [data-testid="stSidebar"] * {
+        color: #f3f4f6 !important;
+    }
+    
+    /* Sleek Card Containers with Smooth Fade-in */
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
@@ -30,8 +40,14 @@ st.markdown(
         padding: 24px;
         border-radius: 16px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-        animation: fadeIn 0.6s ease-out forwards;
-        margin-bottom: 20px;
+        animation: fadeIn 0.5s ease-out forwards;
+        margin-top: 20px;
+    }
+    
+    /* Fix Input Labels & Text Visibility */
+    label, .stSlider p, .stNumberInput label {
+        color: #e5e7eb !important;
+        font-weight: 500 !important;
     }
     
     /* Glowing Button Styling */
@@ -52,14 +68,10 @@ st.markdown(
         box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
     }
     
-    /* Headers & Text Styling */
+    /* Headers */
     h1, h2, h3 {
         color: #f9fafb !important;
         font-family: 'Inter', sans-serif;
-    }
-    
-    p, label {
-        color: #9ca3af !important;
     }
     </style>
     """,
@@ -259,7 +271,6 @@ with col_btn2:
 
 if predict_button:
   with st.spinner("Processing feature vector and analyzing trends..."):
-    # Realistic baseline medians for unselected features to prevent drop-off bugs
     default_medians = {
         "OverallQual": 6,
         "OverallCond": 5,
@@ -275,33 +286,29 @@ if predict_button:
         "GarageArea": 480,
     }
 
-    # Initialize feature dictionary with realistic medians rather than 0
     feature_values = {
         feature: default_medians.get(feature, 1) for feature in model_features
     }
 
-    # Map user parameters
     feature_values["GrLivArea"] = sqft_grlivarea
     feature_values["BedroomAbvGr"] = bedrooms_abvgr
     feature_values["FullBath"] = full_bath
     feature_values["OverallQual"] = overall_qual
     feature_values["YearBuilt"] = year_built
     feature_values["TotalBsmtSF"] = total_basement
-    feature_values["YrSold"] = 2010  # Base model training cap year
+    feature_values["YrSold"] = 2010
 
-    # Create DataFrame matching model columns order
     input_df = pd.DataFrame([feature_values], columns=model_features)
 
-    # Transform and predict base value (at year 2010 baseline)
     scaled_data = scaler.transform(input_df)
     base_prediction = model.predict(scaled_data)[0]
 
-    # Apply a compound annual growth appreciation rate (~3.5% per year past 2010)
     years_diff = target_year - 2010
     appreciation_rate = 0.035
-    projected_prediction = base_prediction * ((1 + appreciation_rate) ** max(0, years_diff))
+    projected_prediction = base_prediction * (
+        (1 + appreciation_rate) ** max(0, years_diff)
+    )
 
-  # Results presentation card
   st.markdown(
       f"""
     <div class="card-container">

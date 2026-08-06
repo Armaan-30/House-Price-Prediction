@@ -195,11 +195,11 @@ with st.sidebar:
   target_year = st.slider(
       "📅 Target Prediction Year",
       min_value=2006,
-      max_value=2035,
+      max_value=2050,
       value=2026,
       help=(
-          "Select a future year to forecast valuation accounting for market"
-          " appreciation."
+          "Select a future year (up to 2050) to forecast valuation accounting"
+          " for market appreciation."
       ),
   )
 
@@ -213,7 +213,7 @@ st.markdown("---")
 
 st.subheader("📊 Primary Property Characteristics")
 
-# Inputs with strict boundary warnings matching dataset limitations
+# Inputs with strict boundary limits (min >= 1 for bedrooms and baths)
 col1, col2 = st.columns(2)
 
 with col1:
@@ -226,17 +226,17 @@ with col1:
   )
   bedrooms_abvgr = st.number_input(
       "Bedrooms Above Grade",
-      min_value=0,
+      min_value=1,
       max_value=8,
       value=3,
-      help="Dataset limits: 0 to 8 bedrooms.",
+      help="Must be at least 1 bedroom.",
   )
   full_bath = st.number_input(
       "Full Bathrooms",
-      min_value=0,
+      min_value=1,
       max_value=3,
       value=2,
-      help="Dataset limits: 0 to 3 full baths.",
+      help="Must be at least 1 full bath.",
   )
 
 with col2:
@@ -320,4 +320,4 @@ if predict_button:
     """,
       unsafe_allow_html=True,
   )
-  st.balloons()
+  st.snow()

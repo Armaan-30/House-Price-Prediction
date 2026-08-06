@@ -1,4 +1,4 @@
-import joblib  # Using joblib as it's standard for sklearn models
+import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -8,7 +8,65 @@ st.set_page_config(
     page_title="House Price Predictor", page_icon="🏡", layout="wide"
 )
 
-# Load the trained model and scaler with cached resource loading for speed
+# --- Custom Dark Minimalist UI & Animations Styling ---
+st.markdown(
+    """
+    <style>
+    /* Global Dark Theme Adjustments */
+    .stApp {
+        background-color: #0b0f19;
+        color: #f3f4f6;
+    }
+    
+    /* Sleek Card Containers with Smooth Fade-in Animation */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .card-container {
+        background: #111827;
+        border: 1px solid #1f2937;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        animation: fadeIn 0.6s ease-out forwards;
+        margin-bottom: 20px;
+    }
+    
+    /* Glowing Button Styling */
+    .stButton > button {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        width: 100%;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+    }
+    
+    /* Headers & Text Styling */
+    h1, h2, h3 {
+        color: #f9fafb !important;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    p, label {
+        color: #9ca3af !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Load the trained model and scaler with cached resource loading
 @st.cache_resource
 def load_assets():
   try:
@@ -113,33 +171,37 @@ model_features = [
 
 # --- Sidebar ---
 with st.sidebar:
-  st.image(
-      "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=600&q=80",
-      use_container_width=True,
-  )
-  st.title("About App")
+  st.title("🎛️ Control Panel")
+  st.markdown("---")
+  st.markdown("### About Model")
   st.info(
-      "This application leverages a **Ridge Regression** machine learning"
-      " pipeline trained on housing data to estimate property market values"
-      " based on key structural features."
+      "This application uses a regularized **Ridge Regression** architecture"
+      " optimized for residential property valuation with historical and"
+      " future projection algorithms."
   )
   st.markdown("---")
-  st.markdown("### 🛠️ Tech Stack")
-  st.markdown(
-      "- Python • Streamlit\n- Scikit-Learn • Pandas\n- Ridge Regression Model"
+  target_year = st.slider(
+      "📅 Target Prediction Year",
+      min_value=2006,
+      max_value=2035,
+      value=2026,
+      help=(
+          "Select a future year to forecast valuation accounting for market"
+          " appreciation."
+      ),
   )
 
 # --- Main Page Layout ---
-st.title("🏡 Ames Housing Price Prediction")
+st.title("🏡 Advanced Real Estate Valuation Engine")
 st.markdown(
-    "Provide the core structural attributes of the property below to generate an"
-    " instant valuation estimate."
+    "Provide structural parameters below. The system validates boundaries and"
+    " projects valuations dynamically."
 )
 st.markdown("---")
 
-st.subheader("📊 Key Property Characteristics")
+st.subheader("📊 Primary Property Characteristics")
 
-# Creating a clean 2-column layout for inputs
+# Inputs with strict boundary warnings matching dataset limitations
 col1, col2 = st.columns(2)
 
 with col1:
@@ -148,21 +210,21 @@ with col1:
       min_value=334,
       max_value=5642,
       value=1500,
-      help="Total square footage of living area above ground.",
+      help="Dataset limits: 334 sqft to 5,642 sqft.",
   )
   bedrooms_abvgr = st.number_input(
       "Bedrooms Above Grade",
       min_value=0,
       max_value=8,
       value=3,
-      help="Number of bedrooms above basement level.",
+      help="Dataset limits: 0 to 8 bedrooms.",
   )
   full_bath = st.number_input(
       "Full Bathrooms",
       min_value=0,
       max_value=3,
       value=2,
-      help="Full bathrooms above ground.",
+      help="Dataset limits: 0 to 3 full baths.",
   )
 
 with col2:
@@ -170,33 +232,53 @@ with col2:
       "Overall Material & Finish Quality",
       min_value=1,
       max_value=10,
-      value=7,
-      help="Rate the overall material and finish of the house (1 = Very Poor, 10"
-      " = Very Excellent).",
+      value=6,
+      help="Scale from 1 (Very Poor) to 10 (Very Excellent).",
   )
   year_built = st.number_input(
       "Year Built",
       min_value=1872,
       max_value=2010,
       value=2000,
-      help="Original construction date.",
+      help="Dataset limits: 1872 to 2010.",
+  )
+  total_basement = st.number_input(
+      "Total Basement Area (sqft)",
+      min_value=0,
+      max_value=6110,
+      value=850,
+      help="Dataset limits: 0 to 6,110 sqft.",
   )
 
 st.markdown("---")
 
-# Center alignment for the prediction action button
+# Action Button Layout
 col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
-
 with col_btn2:
-  predict_button = st.button(
-      "🔮 Predict Sale Price", use_container_width=True, type="primary"
-  )
+  predict_button = st.button("🔮 Compute Future Valuation")
 
 if predict_button:
-  # Create a spinner while processing prediction
-  with st.spinner("Analyzing property metrics and calculating valuation..."):
-    # Create feature dictionary initialized to 0 defaults
-    feature_values = {feature: 0 for feature in model_features}
+  with st.spinner("Processing feature vector and analyzing trends..."):
+    # Realistic baseline medians for unselected features to prevent drop-off bugs
+    default_medians = {
+        "OverallQual": 6,
+        "OverallCond": 5,
+        "YearBuilt": 1973,
+        "YearRemodAdd": 1994,
+        "TotalBsmtSF": 991,
+        "1stFlrSF": 1087,
+        "GrLivArea": 1500,
+        "FullBath": 2,
+        "BedroomAbvGr": 3,
+        "TotRmsAbvGrd": 6,
+        "GarageCars": 2,
+        "GarageArea": 480,
+    }
+
+    # Initialize feature dictionary with realistic medians rather than 0
+    feature_values = {
+        feature: default_medians.get(feature, 1) for feature in model_features
+    }
 
     # Map user parameters
     feature_values["GrLivArea"] = sqft_grlivarea
@@ -204,17 +286,31 @@ if predict_button:
     feature_values["FullBath"] = full_bath
     feature_values["OverallQual"] = overall_qual
     feature_values["YearBuilt"] = year_built
+    feature_values["TotalBsmtSF"] = total_basement
+    feature_values["YrSold"] = 2010  # Base model training cap year
 
-    # Convert to DataFrame matching exact model columns order
+    # Create DataFrame matching model columns order
     input_df = pd.DataFrame([feature_values], columns=model_features)
 
-    # Transform data and predict
+    # Transform and predict base value (at year 2010 baseline)
     scaled_data = scaler.transform(input_df)
-    prediction = model.predict(scaled_data)
+    base_prediction = model.predict(scaled_data)[0]
 
-  # Results display box
-  st.markdown("### 🏷️ Valuation Results")
-  st.success(
-      f"### Estimated Market Sale Price: **₹{prediction[0]:,.2f}**", icon="💰"
+    # Apply a compound annual growth appreciation rate (~3.5% per year past 2010)
+    years_diff = target_year - 2010
+    appreciation_rate = 0.035
+    projected_prediction = base_prediction * ((1 + appreciation_rate) ** max(0, years_diff))
+
+  # Results presentation card
+  st.markdown(
+      f"""
+    <div class="card-container">
+        <h3 style="margin-top:0; color:#60a5fa;">🏷️ Valuation Results for Year {target_year}</h3>
+        <p style="font-size: 1.1rem; color: #d1d5db; margin-bottom: 5px;">Base Model Output (2010 baseline): <b>₹{base_prediction:,.2f}</b></p>
+        <hr style="border-color: #374151;">
+        <h2 style="color: #34d399; margin-bottom: 0;">Projected Market Price: ₹{projected_prediction:,.2f}</h2>
+    </div>
+    """,
+      unsafe_allow_html=True,
   )
   st.balloons()

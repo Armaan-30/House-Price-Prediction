@@ -215,6 +215,6 @@ if predict_button:
   # Results display box
   st.markdown("### 🏷️ Valuation Results")
   st.success(
-      f"### Estimated Market Sale Price: **${prediction[0]:,.2f}**", icon="💰"
+      f"### Estimated Market Sale Price: **₹{prediction[0]:,.2f}**", icon="💰"
   )
   st.balloons()

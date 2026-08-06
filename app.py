@@ -8,28 +8,24 @@ scaler = joblib.load("scaler.pkl")
 
 st.title("🏡 House Price Prediction App")
 st.write(
-    "Enter the property details below to predict the estimated house price."
+    "Enter all the required property features below to predict the price."
 )
 
-# Example input fields (Modify these variables to match your dataset's features)
-# For instance, if your model takes square footage, bedrooms, and bathrooms:
-sqft = st.number_input("Square Footage", min_value=500, max_value=10000, value=2000)
-bedrooms = st.number_input("Number of Bedrooms", min_value=1, max_value=10, value=3)
-bathrooms = st.number_input(
-    "Number of Bathrooms", min_value=1, max_value=10, value=2
-)
+# Create input widgets for EVERY feature your model was trained on
+# Make sure the number and order match what Colab expects!
+feature1 = st.number_input("Feature 1 Name", value=0.0)
+feature2 = st.number_input("Feature 2 Name", value=0.0)
+# ... add input fields for all features ...
 
 if st.button("Predict Price"):
-  # Combine inputs into an array
-  input_data = np.array([[sqft, bedrooms, bathrooms]])
+  # Collect all inputs into a single 2D array in the correct order
+  input_data = np.array([[feature1, feature2]])  # Add all your features here
 
-  # Scale the input using your saved scaler
+  # Scale the input data using the loaded scaler
   scaled_data = scaler.transform(input_data)
 
   # Make prediction
   prediction = model.predict(scaled_data)
 
-  # Display result
-  st.success(
-      f"Estimated House Price: ${prediction[0]:,.2f}"
-  )
+  # Display the result
+  st.success(f"Estimated House Price: ${prediction[0]:,.2f}")
